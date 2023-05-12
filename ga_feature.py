@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-# @File     : ga.py
+# @File     : ga_feature.py
 # @Time     : 2023/5/12 上午10:04
 # @Author   : YouPingJie
-# @Function : 遗传算法优化SVM
+# @Function : 遗传算法优化获得最适合SVM的特征
 
 import copy
 from functools import cmp_to_key
