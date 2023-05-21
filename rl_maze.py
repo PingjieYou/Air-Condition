@@ -207,7 +207,7 @@ target_net = DQN(n_observations, n_actions).to(device)
 target_net.load_state_dict(policy_net.state_dict())
 
 optimizer = optim.AdamW(policy_net.parameters(), lr=LR, amsgrad=True)
-memory = ReplayMemory(10000)
+memory = ReplayMemory(10000) # 设置经验回放缓冲区的最大容量
 
 
 class DeepQNetwork:
@@ -222,7 +222,8 @@ class DeepQNetwork:
         eps_threshold = EPS_END + (EPS_START - EPS_END) * \
                         math.exp(-1. * steps_done / EPS_DECAY)
         steps_done += 1
-        action_ = self.choose_action()
+        action_ = self.choose_action() # 选择行为
+        # 以ε-greedy策略选择行为,即以ε的概率随机选择行为，以1-ε的概率选择当前最优行为,ε的值会随着训练的进行不断衰减,从而使智能体的行为越来越接近最优策略
         if sample > eps_threshold:
             with torch.no_grad():
                 return policy_net(state).max(1)[1].view(1, 1)
@@ -253,11 +254,9 @@ class DeepQNetwork:
         if len(memory) < BATCH_SIZE:
             return
         transitions = memory.sample(BATCH_SIZE)
-        # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
-        # detailed explanation). This converts batch-array of Transitions
-        # to Transition of batch-arrays.
+        # 将批处理转换为每个转换的批处理，以便能够计算每个元素的损失
         batch = Transition(*zip(*transitions))
-
+        print(batch)
         # Compute a mask of non-final states and concatenate the batch elements
         # (a final state would've been the one after which simulation ended)
         non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
