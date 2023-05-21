@@ -107,20 +107,23 @@ class Maze(tk.Tk, object):
             if s[0] > UNIT:
                 base_action[0] -= UNIT
 
-        self.canvas.move(self.rect, base_action[0], base_action[1])  # move agent
+        self.canvas.move(self.rect, base_action[0], base_action[1])  # 红色方块移动
 
-        s_ = self.canvas.coords(self.rect)  # next state
+        s_ = self.canvas.coords(self.rect)  # 现在的位置
 
-        # reward function
+        # 奖励机制
         if s_ == self.canvas.coords(self.oval):
+            # 当前位置处于终点
             reward = 1
             done = True
             s_ = 'terminal'
         elif s_ in [self.canvas.coords(self.hell1), self.canvas.coords(self.hell2)]:
+            # 当前位置处于阻塞区域
             reward = -1
             done = True
             s_ = 'terminal'
         else:
+            # 可行区域
             reward = 0
             done = False
 
@@ -217,18 +220,19 @@ class DeepQNetwork:
         self.action_space = action_space  # 行为空间
 
     def select_action(self, state):
+        # epsilon-greedy策略，以一定概率选择随机动作
         global steps_done
-        sample = random.random()
+        sample = random.random() # 生成0～1之间的随机数
         eps_threshold = EPS_END + (EPS_START - EPS_END) * \
-                        math.exp(-1. * steps_done / EPS_DECAY)
+                        math.exp(-1. * steps_done / EPS_DECAY) # 计算当前ε的值
         steps_done += 1
         action_ = self.choose_action() # 选择行为
         # 以ε-greedy策略选择行为,即以ε的概率随机选择行为，以1-ε的概率选择当前最优行为,ε的值会随着训练的进行不断衰减,从而使智能体的行为越来越接近最优策略
         if sample > eps_threshold:
             with torch.no_grad():
-                return policy_net(state).max(1)[1].view(1, 1)
+                return policy_net(state).max(1)[1].view(1, 1) # 选择当前最优行为
         else:
-            return torch.tensor([[action_]], device=device, dtype=torch.long)
+            return torch.tensor([[action_]], device=device, dtype=torch.long) # 选择随机行为
 
     def plot_durations(show_result=False):
         plt.figure(1)
@@ -256,9 +260,8 @@ class DeepQNetwork:
         transitions = memory.sample(BATCH_SIZE)
         # 将批处理转换为每个转换的批处理，以便能够计算每个元素的损失
         batch = Transition(*zip(*transitions))
-        print(batch)
-        # Compute a mask of non-final states and concatenate the batch elements
-        # (a final state would've been the one after which simulation ended)
+        # 计算非最终状态的掩码并连接批处理元素
+        # (最终状态将是模拟结束后的状态)
         non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
                                                 batch.next_state)), device=device, dtype=torch.bool)
         non_final_next_states = torch.cat([s for s in batch.next_state
@@ -267,30 +270,27 @@ class DeepQNetwork:
         action_batch = torch.cat(batch.action)
         reward_batch = torch.cat(batch.reward)
 
-        # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
-        # columns of actions taken. These are the actions which would've been taken
-        # for each batch state according to policy_net
+        # 计算Q(s_t, a) - 模型计算Q(s_t)，然后我们选择执行的动作列。这些是根据策略网络对每个批处理状态的预测，按照action_batch中的动作索引选择状态动作值
         state_action_values = policy_net(state_batch).gather(1, action_batch)
 
         # Compute V(s_{t+1}) for all next states.
-        # Expected values of actions for non_final_next_states are computed based
-        # on the "older" target_net; selecting their best reward with max(1)[0].
-        # This is merged based on the mask, such that we'll have either the expected
-        # state value or 0 in case the state was final.
+        # 计算V(s_{t+1}) - 从非最终下一个状态的预测中获取最大的预测值。
+        # 预期状态动作值是基于“旧”目标网络计算的;选择其最佳奖励与max(1)[0]。
+        # 这是基于掩码合并的，因此我们将具有预期状态值或0的状态合并在一起，以防状态是最终状态。
         next_state_values = torch.zeros(BATCH_SIZE, device=device)
         with torch.no_grad():
             next_state_values[non_final_mask] = target_net(non_final_next_states).max(1)[0]
-        # Compute the expected Q values
+        # 计算预期的Q值 - 通过将预期状态动作值与预期状态值相乘来获得预期的状态动作值。
         expected_state_action_values = (next_state_values * GAMMA) + reward_batch
 
-        # Compute Huber loss
+        # 计算Huber损失
         criterion = nn.SmoothL1Loss()
         loss = criterion(state_action_values, expected_state_action_values.unsqueeze(1))
 
-        # Optimize the model
+        # 优化模型
         optimizer.zero_grad()
         loss.backward()
-        # In-place gradient clipping
+        # 通过将梯度裁剪到范围[-1,1]来稳定训练
         torch.nn.utils.clip_grad_value_(policy_net.parameters(), 100)
         optimizer.step()
 
@@ -309,11 +309,11 @@ RL = DeepQNetwork(env.n_actions, len(env.reset()), env.action_space)
 for i_episode in range(num_episodes):
     # 初始化环境和状态
     state = env.reset()
-    state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
+    state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0) # [1, 4]
     for t in count():
         env.render() # 显示画面
         action = RL.select_action(state) # 选择行为,范围为0～3
-        observation, reward, terminated = env.step(action) # 执行行为，获得下一个状态和奖励
+        observation, reward, terminated = env.step(action) # 执行行为，获得下一个状态，奖励和是否终止
         reward = torch.tensor([reward], device=device)
         done = terminated
 
@@ -322,17 +322,16 @@ for i_episode in range(num_episodes):
         else:
             next_state = torch.tensor(observation, dtype=torch.float32, device=device).unsqueeze(0)
 
-        # Store the transition in memory
+        # 存储状态，行为，下一状态和奖励
         memory.push(state, action, next_state, reward)
 
-        # Move to the next state
+        # 状态更新
         state = next_state
 
-        # Perform one step of the optimization (on the policy network)
+        # 优化模型
         RL.optimize_model()
 
-        # Soft update of the target network's weights
-        # θ′ ← τ θ + (1 −τ )θ′
+        # 软更新目标网络参数，即：θ′ ← τ θ + (1 −τ )θ′
         target_net_state_dict = target_net.state_dict()
         policy_net_state_dict = policy_net.state_dict()
         for key in policy_net_state_dict:

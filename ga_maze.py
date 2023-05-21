@@ -3,23 +3,23 @@ from pyamaze import maze, agent
 from copy import deepcopy, copy
 import csv
 
-#initialize constants
+# initialize constants
 POPULATIONSIZE = 100
-ROWS, COLS = 10,10
+ROWS, COLS = 10, 10
 
-#Set the mutation rate 
+# Set the mutation rate
 MUTATION_RATE = 100
 
 # start and end points of the maze
 START, END = 1, COLS
 
-#weights of path length, infeasible steps and number of turns
+# weights of path length, infeasible steps and number of turns
 wl, ws, wt = 2, 3, 2
 
-#file name for storing fitness parameters
+# file name for storing fitness parameters
 file_name = 'data.csv'
 
-#initilize a maze object and create a maze 
+# initilize a maze object and create a maze
 m = maze(ROWS, COLS)
 m.CreateMaze(loopPercent=100)
 maps = m.maze_map
@@ -39,25 +39,27 @@ def popFiller(pop, direction):
         direction.append(choice(["r", "c"]))
     return pop, direction
 
+
 def inter_steps(point1, point2, direction):
     """
     Takes in two points and the direction of the path between them and returns the intermediate steps between them.
     """
     steps = []
-    if direction == "c": # column first
-        if point1[0] < point2[0]:  
+    if direction == "c":  # column first
+        if point1[0] < point2[0]:
             steps.extend([(i, point1[1]) for i in range(point1[0] + 1, point2[0] + 1)])
         elif point1[0] > point2[0]:
             steps.extend([(i, point1[1]) for i in range(point1[0] - 1, point2[0] - 1, -1)])
         steps.append(point2)
-    elif direction == "r": # row first
-        if point1[0] < point2[0]:  
+    elif direction == "r":  # row first
+        if point1[0] < point2[0]:
             steps.extend([(i, point1[1] + 1) for i in range(point1[0], point2[0] + 1)])
         elif point1[0] > point2[0]:
             steps.extend([(i, point1[1] + 1) for i in range(point1[0], point2[0] - 1, -1)])
         else:
             steps.append(point2)
     return steps
+
 
 def path(individual, direction):
     """
@@ -96,7 +98,7 @@ def pathParameters(individual, complete_path, map_data):
     return turns, infeas
 
 
-def fitCal(population, direction, solutions,createCSV = True):
+def fitCal(population, direction, solutions, createCSV=True):
     """
     Takes in the population list and the direction list and
     returns the fitness list of the population and the solution found(infeasible steps equal to zero).
@@ -111,7 +113,7 @@ def fitCal(population, direction, solutions,createCSV = True):
     turns = []
     infeas_steps = []
     length = []
-    
+
     # A function for calculating the normalized fitness value
     def calc(curr, maxi, mini):
         if maxi == mini:
@@ -121,9 +123,9 @@ def fitCal(population, direction, solutions,createCSV = True):
 
     # Iterate over each individual in the population
     for i, individual in enumerate(population):
-        # Generate the complete path of individual 
+        # Generate the complete path of individual
         p = path(individual, direction[i])
-         # Calculate the number of turns and infeasible steps in the individual's path
+        # Calculate the number of turns and infeasible steps in the individual's path
         t, s = pathParameters(individual, p, maps)
         # If the individual has zero infeasible steps, add it to the solutions list
         if s == 0:
@@ -140,8 +142,8 @@ def fitCal(population, direction, solutions,createCSV = True):
 
     # Calculate the normalized fitness values for turns, infeasible steps, and path length
     fs = [calc(infeas_steps[i], max_s, min_s) for i in range(len(population))]
-    fl = [calc(length[i],max_l, min_l) for i in range(len(population))]
-    ft = [calc(turns[i],  max_t, min_t) for i in range(len(population))]
+    fl = [calc(length[i], max_l, min_l) for i in range(len(population))]
+    ft = [calc(turns[i], max_t, min_t) for i in range(len(population))]
 
     # Calculate the fitness scores for each individual in the population
     fitness = [
@@ -154,7 +156,7 @@ def fitCal(population, direction, solutions,createCSV = True):
         with open(file_name, 'a+', newline='') as f:
             writer = csv.DictWriter(f, fieldnames=['Path Length', 'Turns', 'Infeasible Steps', 'Fitness'])
             writer.writerow({'Path Length': min_l, 'Turns': min_t, 'Infeasible Steps': min_s, 'Fitness': max(fitness)})
-    
+
     return fitness, solutions
 
 
@@ -173,7 +175,7 @@ def rankSel(population, fitness, direction):
 
 
 def crossover(population, direction):
-    """ 
+    """
     Takes in the population and direction lists and returns the population and direction lists after single point crossover.
     """
     # Choose a random crossover point between the second and second-to-last gene
@@ -183,11 +185,12 @@ def crossover(population, direction):
     for i in range(no_of_parents - 1):
         # Create offspring by combining the genes of two parents up to the crossover point
         population[i + no_of_parents] = (
-            population[i][:crossover_point] + population[i + 1][crossover_point:]
+                population[i][:crossover_point] + population[i + 1][crossover_point:]
         )
         # Choose a random direction for the offspring
         direction[i + no_of_parents] = choice(["r", "c"])
     return population, direction
+
 
 def mutation(population, mutation_rate, direction, no_of_genes_to_mutate=1):
     """
@@ -230,9 +233,9 @@ def best_solution(solutions):
             best_individual = individual
             best_direction = direction
     return best_individual, best_direction
-        
-def main():
 
+
+def main():
     # Initialize population, direction, and solution lists
     pop, direc, sol = [], [], []
     # Set the generation count and the maximum number of generations
@@ -255,7 +258,7 @@ def main():
         fitness, sol = fitCal(pop, direc, sol, createCSV=True)
         # Select the parents for the next generation using rank selection
         pop, direc = rankSel(pop, fitness, direc)
-         # Create the offspring for the next generation using crossover
+        # Create the offspring for the next generation using crossover
         pop, direc = crossover(pop, direc)
         # mutate the offsprings using mutation function
         pop, direc = mutation(pop, MUTATION_RATE, direc, no_of_genes_to_mutate=1)
@@ -274,21 +277,22 @@ def main():
                 pop, direc = popFiller(pop, direc)
                 gen = 0
                 continue
-             # If flag is 'n' exit the program
+            # If flag is 'n' exit the program
             else:
                 print("Good Bye")
-                return None 
-    
-     # Find the best solution and its direction
+                return None
+
+                # Find the best solution and its direction
     solIndiv, solDir = best_solution(sol)
     # Generate the final solution path and reverse it
     solPath = path(solIndiv, solDir)
     solPath.reverse()
 
-     # Create an agent, set its properties, and trace its path through the maze
+    # Create an agent, set its properties, and trace its path through the maze
     a = agent(m, shape="square", filled=False, footprints=True)
     m.tracePath({a: solPath}, delay=100)
     m.run()
+
 
 if __name__ == "__main__":
     # Call the main function
