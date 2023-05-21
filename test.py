@@ -26,11 +26,12 @@ UNIT = 40  # pixels
 MAZE_H = 15  # grid height
 MAZE_W = 15  # grid width
 
-ROWS, COLS = 10,10
+ROWS, COLS = 3,3
 START, END = 1, COLS
 m = maze(ROWS, COLS)
 m.CreateMaze(loopPercent=100)
 maps = m.maze_map
+a = agent(m, shape="square", filled=False, footprints=True)
 
 
 # a = agent(m, shape="square", filled=False, footprints=True)
@@ -243,6 +244,7 @@ else:
     num_episodes = 50
 
 RL = DeepQNetwork(env.n_actions, len(env.reset()), env.action_space)
+solution_list = []
 
 for i_episode in range(num_episodes):
     # 初始化环境和状态
@@ -279,45 +281,53 @@ for i_episode in range(num_episodes):
             print(i_episode)
             episode_durations.append(t + 1)
             if reward == 1:
-                solPath = env.solution
-                solPath.reverse()
-                a = agent(m, shape="square", filled=False, footprints=True)
-                m.tracePath({a: solPath}, delay=100)
-                m.run()
+                solution_list.append(env.solution)
+                # solPath = env.solution
+                # solPath.reverse()
+                # a = agent(m, shape="square", filled=False, footprints=True)
+                # m.tracePath({a: solPath}, delay=100)
+                # m.run()
             break
+for i in range(len(solution_list)):
+    m_ = m
+    a = agent(m, shape="square", filled=False, footprints=True)
+    solPath = solution_list[i]
+    m.tracePath({a: solPath}, delay=100)
+    m.run()
+    m = m_
 
-
-for i_episode in range(num_episodes):
-    # 初始化环境和状态
-    state = env.reset()
-    state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)  # [1, 4]
-    for t in count():
-        action = RL.select_action(state)  # 选择行为,范围为0～3
-        observation, reward, terminated = env.step(action)  # 执行行为，获得下一个状态，奖励和是否终止
-        reward = torch.tensor([reward], device=device)
-        done = terminated
-
-        if terminated:
-            next_state = None
-        else:
-            next_state = torch.tensor(observation, dtype=torch.float32, device=device).unsqueeze(0)
-
-        # 存储状态，行为，下一状态和奖励
-        memory.push(state, action, next_state, reward)
-
-        # 状态更新
-        state = next_state
-
-        if done:
-            episode_durations.append(t + 1)
-            # Create an agent, set its properties, and trace its path through the maze
-            if reward == 1:
-                solPath = env.solution
-                solPath.reverse()
-                a = agent(m, shape="square", filled=False, footprints=True)
-                m.tracePath({a: solPath}, delay=100)
-                m.run()
-            break
+# for i_episode in range(num_episodes):
+#     # 初始化环境和状态
+#     state = env.reset()
+#     state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)  # [1, 4]
+#     for t in count():
+#         action = RL.select_action(state)  # 选择行为,范围为0～3
+#         observation, reward, terminated = env.step(action)  # 执行行为，获得下一个状态，奖励和是否终止
+#         reward = torch.tensor([reward], device=device)
+#         done = terminated
+#
+#         if terminated:
+#             next_state = None
+#         else:
+#             next_state = torch.tensor(observation, dtype=torch.float32, device=device).unsqueeze(0)
+#
+#         # 存储状态，行为，下一状态和奖励
+#         memory.push(state, action, next_state, reward)
+#
+#         # 状态更新
+#         state = next_state
+#
+#         if done:
+#             episode_durations.append(t + 1)
+#
+#             # Create an agent, set its properties, and trace its path through the maze
+#             if reward == 1:
+#                 solPath = env.solution
+#                 solPath.reverse()
+#                 a = agent(m, shape="square", filled=False, footprints=True)
+#                 m.tracePath({a: solPath}, delay=100)
+#                 m.run()
+#             break
 
 
 
