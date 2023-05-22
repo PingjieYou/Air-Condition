@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 import math
 import random
 import matplotlib.pyplot as plt
@@ -26,13 +23,12 @@ UNIT = 40  # pixels
 MAZE_H = 15  # grid height
 MAZE_W = 15  # grid width
 
-ROWS, COLS = 3,3
+ROWS, COLS = 5,5
 START, END = 1, COLS
 m = maze(ROWS, COLS)
 m.CreateMaze(loopPercent=100)
 maps = m.maze_map
 a = agent(m, shape="square", filled=False, footprints=True)
-
 
 # a = agent(m, shape="square", filled=False, footprints=True)
 class Maze():
@@ -175,25 +171,6 @@ class DeepQNetwork:
         else:
             return torch.tensor([[action_]], device=device, dtype=torch.long)  # 选择随机行为
 
-    def plot_durations(show_result=False):
-        plt.figure(1)
-        durations_t = torch.tensor(episode_durations, dtype=torch.float)
-        if show_result:
-            plt.title('Result')
-        else:
-            plt.clf()
-            plt.title('Training...')
-        plt.xlabel('Episode')
-        plt.ylabel('Duration')
-        plt.plot(durations_t.numpy())
-        # Take 100 episode averages and plot them too
-        if len(durations_t) >= 100:
-            means = durations_t.unfold(0, 100, 1).mean(1).view(-1)
-            means = torch.cat((torch.zeros(99), means))
-            plt.plot(means.numpy())
-
-        plt.pause(0.001)  # pause a bit so that plots are updated
-
     # Training loop
     def optimize_model(self):
         if len(memory) < BATCH_SIZE:
@@ -281,20 +258,14 @@ for i_episode in range(num_episodes):
             print(i_episode)
             episode_durations.append(t + 1)
             if reward == 1:
-                solution_list.append(env.solution)
-                # solPath = env.solution
-                # solPath.reverse()
-                # a = agent(m, shape="square", filled=False, footprints=True)
-                # m.tracePath({a: solPath}, delay=100)
-                # m.run()
+                solution = env.solution
+                solPath = env.solution
+                solPath.reverse()
+                a = agent(m, shape="square", filled=False, footprints=True)
+                m.tracePath({a: solPath}, delay=100)
+                m.run()
             break
-for i in range(len(solution_list)):
-    m_ = m
-    a = agent(m, shape="square", filled=False, footprints=True)
-    solPath = solution_list[i]
-    m.tracePath({a: solPath}, delay=100)
-    m.run()
-    m = m_
+
 
 # for i_episode in range(num_episodes):
 #     # 初始化环境和状态
