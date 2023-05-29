@@ -6,8 +6,6 @@
 @Function:   
 '''
 
-import sys
-import time
 import math
 import torch
 import random
@@ -21,6 +19,9 @@ import torch.nn.functional as F
 from pyamaze import maze, agent
 from collections import namedtuple, deque
 
+Infeasible_Steps = 0
+Turns = 0
+Path_Length = 0
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 
 class Maze():
@@ -158,21 +159,36 @@ class DeepQNetwork():
         loss.backward()
         torch.nn.utils.clip_grad_value_(self.eval_net.parameters(),100)
         optimizer.step()
-        
+
+        return loss
+
+def plot_steps(step_history):
+    plt.plot(step_history)
+    plt.title('Steps Cost')
+    plt.xlabel('Epoch')
+    plt.ylabel('Steps')
+    plt.show()
+
+def plot_loss(loss_history):
+    plt.plot(loss_history)
+    plt.title('Training Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.show()
 
 def main():
     parser = argparse.ArgumentParser(description="Maze")
 
-    parser.add_argument('--rows', type=int, default=5, help="maze rows")
-    parser.add_argument('--cols', type=int, default=5, help="maze cols")
+    parser.add_argument('--rows', type=int, default=4, help="maze rows")
+    parser.add_argument('--cols', type=int, default=4, help="maze cols")
     parser.add_argument('--batch_size', type=int, default=256, help="batch size")
-    parser.add_argument('--lr', type=float, default=0.001, help="learning rate")
+    parser.add_argument('--lr', type=float, default=1e-6, help="learning rate")
     parser.add_argument('--gamma', type=float, default=0.9, help="reward discount")
     parser.add_argument('--eps_start', type=float, default=0.9, help="eps start")
     parser.add_argument('--eps_end', type=float, default=0.05, help="eps end")
     parser.add_argument('--eps_decay', type=float, default=200, help="eps decay")
     parser.add_argument('--tau',type=float,default=0.005,help="soft update")
-    parser.add_argument('--epochs',type=int,default=1024,help="epochs")
+    parser.add_argument('--epochs',type=int,default=1000,help="epochs")
 
     opts = parser.parse_args()
 
@@ -205,6 +221,9 @@ def main():
     q_net = DeepQNetwork(n_actions,n_observation,env.action_space,eval_net,target_net)
     solution_list = []
 
+    loss_history = []
+    step_history = []
+
     for epoch in range(opts.epochs):
         state = env.reset()
         state = torch.tensor(state,dtype=torch.float32).unsqueeze(0).to(device) # [1,4]
@@ -219,11 +238,13 @@ def main():
                 next_state = None
             else:
                 next_state = torch.tensor(observation,dtype=torch.float32).unsqueeze(0).to(device)
-            
+
             memory.push(state,action,next_state,reward)
             state = next_state
 
-            q_net.optimize(memory,opts.batch_size,opts.gamma,optimizer,device)
+            loss = q_net.optimize(memory,opts.batch_size,opts.gamma,optimizer,device)
+            if loss is not None:
+                loss_history.append(loss.cpu().detach().numpy())
 
             target_net_state_dict = target_net.state_dict()
             eval_net_state_dict = eval_net.state_dict()
@@ -233,15 +254,12 @@ def main():
 
             if done:
                 print(epoch)
-                episode_durations.append(t + 1)
-                # if reward == 1:
-                #     solution = env.solution
-                #     solPath = env.solution
-                #     solPath.reverse()
-                #     a = agent(maze_, shape="square", filled=False, footprints=True)
-                #     maze_.tracePath({a: solPath}, delay=100)
-                #     maze_.run()
+                if reward == 1:
+                    step_history.append(len(env.solution)-1)
                 break
+
+    plot_loss(loss_history)
+    plot_steps(step_history)
 
     for epoch in range(opts.epochs):
         state = env.reset()

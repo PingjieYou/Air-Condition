@@ -83,6 +83,7 @@ def pathParameters(individual, complete_path, map_data):
         for i in range(len(individual) - 1)
         if individual[i][0] != individual[i + 1][0]
     )
+
     # Count the number of Infeasible steps in the individual's path
     infeas = sum(
         any(

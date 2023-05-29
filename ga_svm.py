@@ -6,9 +6,7 @@
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 
-import utils
 import random
-import data_process
 import numpy as np
 from sklearn.svm import SVC
 
@@ -91,17 +89,13 @@ class GeneticAlgorithm():
 
 
 def main():
-    df = utils.csv2df('csv/data.csv')
-    X, y = data_process.get_cls_data(df)
-    X = data_process.pre_processing(X)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
-    # # 加载数据集
-    # data = load_iris()
-    # X = data.data
-    # y = data.target
-    #
-    # # 划分训练集和测试集
-    # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+    # 加载数据集
+    data = load_iris()
+    X = data.data
+    y = data.target
+
+    # 划分训练集和测试集
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
     # 算法
     ga = GeneticAlgorithm()
